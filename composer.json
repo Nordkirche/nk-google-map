@@ -2,34 +2,73 @@
     "name": "nordkirche/nk-google-map",
     "type": "typo3-cms-extension",
     "description": "TYPO3 Extension für die Darstellung von Karten mit Markern aus der NAPI",
-    "license": "GPL-2.0",
-    "author": [
+    "license": "GPL-2.0-or-later",
+    "authors": [
         {
-            "name": "Holger McCloy",
-            "role": "Developer",
-            "company": "netzleuchten GmbH"
+            "name": "netzleuchten GmbH",
+            "role": "Developer"
         }
     ],
     "require": {
-        "typo3/cms-core": "^10.4 || ^11.5 || ^12.4"
+        "php": "^8.2",
+        "typo3/cms-core": "^13.4 || ^14.3",
+        "typo3/cms-fluid": "^13.4 || ^14.3",
+        "typo3/cms-frontend": "^13.4 || ^14.3"
+    },
+    "require-dev": {
+        "a9f/typo3-fractor": "^0.5 || ^1.1",
+        "saschaegerer/phpstan-typo3": "^2.1 || ^3.1",
+        "ssch/typo3-rector": "^3.0",
+        "typo3/coding-standards": "^0.8",
+        "typo3/testing-framework": "^9.2"
     },
     "autoload": {
         "psr-4": {
             "Nordkirche\\NkGoogleMap\\": "Classes"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Nordkirche\\NkGoogleMap\\Tests\\": "Tests/"
+        }
+    },
     "config": {
+        "allow-plugins": {
+            "a9f/fractor-extension-installer": true,
+            "phpstan/extension-installer": true,
+            "typo3/class-alias-loader": true,
+            "typo3/cms-composer-installers": true
+        },
         "bin-dir": ".build/bin",
-        "discard-changes": true,
         "optimize-autoloader": true,
+        "sort-packages": true,
         "vendor-dir": ".build/vendor"
     },
     "extra": {
         "typo3/cms": {
-            "extension-key": "nk_google_map"
+            "extension-key": "nk_google_map",
+            "version": "13.0.0",
+            "Package": {
+                "providesPackages": {}
+            },
+            "web-dir": ".build/public"
+        },
+        "branch-alias": {
+            "dev-master": "13.x-dev",
+            "dev-develop": "13.x-dev"
         }
     },
-    "require-dev": {
-        "typo3/coding-standards": "^0.7.1"
+    "scripts": {
+        "cs:check": "php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "php-cs-fixer fix",
+        "fractor": "fractor process",
+        "phpstan": "phpstan analyse",
+        "rector": "rector process",
+        "test:unit": "phpunit -c Build/phpunit/UnitTests.xml",
+        "test:functional": "phpunit -c Build/phpunit/FunctionalTests.xml",
+        "test": [
+            "@test:unit",
+            "@test:functional"
+        ]
     }
 }

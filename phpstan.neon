@@ -1,0 +1,18 @@
+parameters:
+	level: 5
+	paths:
+		- Classes
+		- Configuration
+	excludePaths:
+		- .build
+	ignoreErrors:
+		# Version switches between TYPO3 v13 and v14
+		-
+			message: '#SystemResource\\(SystemResourceFactory|Publishing\\SystemResourcePublisherInterface)#'
+			reportUnmatched: false
+		-
+			message: '#ExtensionUtility::registerPlugin\(\) invoked with 7 parameters#'
+			reportUnmatched: false
+		-
+			message: '#AbstractListTypeToCTypeUpdateCompat#'
+			reportUnmatched: false

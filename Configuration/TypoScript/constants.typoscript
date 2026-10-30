@@ -1,19 +1,19 @@
 plugin.tx_nkgooglemap_pi1 {
-    view {
-        # cat=plugin.nk_google_map/file; type=string; label=Path to template root (FE)
-        templateRootPath = EXT:nk_google_map/Resources/Private/Templates/
-        # cat=plugin.nk_google_map/file; type=string; label=Path to template partials (FE)
-        partialRootPath = EXT:nk_google_map/Resources/Private/Partials/
-        # cat=plugin.nk_google_map/file; type=string; label=Path to template layouts (FE)
-        layoutRootPath = EXT:nk_google_map/Resources/Private/Layouts/
-    }
+  view {
+    # cat=plugin.nk_google_map/file; type=string; label=Path to template root (FE)
+    templateRootPath = EXT:nk_google_map/Resources/Private/Templates/
+    # cat=plugin.nk_google_map/file; type=string; label=Path to template partials (FE)
+    partialRootPath = EXT:nk_google_map/Resources/Private/Partials/
+    # cat=plugin.nk_google_map/file; type=string; label=Path to template layouts (FE)
+    layoutRootPath = EXT:nk_google_map/Resources/Private/Layouts/
+  }
 
-    # cat=plugin.nk_google_map/libraries; type=boolean; label=Load external library: Google Maps
-    googleMapsApi =
+  # cat=plugin.nk_google_map/googleMaps; type=string; label=Google Maps API key
+  googleMapsApiKey =
 
-    # cat=plugin.nk_google_map/libraries; type=boolean; label=Load external library: jQuery 3.7
-    jquery =
+  # cat=plugin.nk_google_map/googleMaps; type=string; label=Google Maps Map ID (enables advanced markers; the map style is then configured in the Google Cloud console)
+  googleMapsMapId =
 
-    # cat=plugin.nk_google_map/googleMaps; type=string; label=Your Google Maps Api Key
-    googleMapsApiKey =
+  # cat=plugin.nk_google_map/googleMaps; type=boolean; label=Load the Google Maps API (disable if the site loads it itself)
+  googleMapsApi = 1
 }

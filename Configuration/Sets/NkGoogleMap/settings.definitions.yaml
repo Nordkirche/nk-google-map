@@ -1,0 +1,22 @@
+categories:
+  nkGoogleMap:
+    label: 'Google Maps'
+
+settings:
+  plugin.tx_nkgooglemap_pi1.googleMapsApiKey:
+    label: 'Google Maps API key'
+    category: nkGoogleMap
+    type: string
+    default: ''
+  plugin.tx_nkgooglemap_pi1.googleMapsMapId:
+    label: 'Google Maps Map ID'
+    description: 'Enables advanced markers. The map style is then configured in the Google Cloud console.'
+    category: nkGoogleMap
+    type: string
+    default: ''
+  plugin.tx_nkgooglemap_pi1.googleMapsApi:
+    label: 'Load the Google Maps API'
+    description: 'Disable if the site loads the API itself.'
+    category: nkGoogleMap
+    type: bool
+    default: true

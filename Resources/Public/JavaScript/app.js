@@ -1,831 +1,491 @@
-var map = [], markers = [], mapBounds = [], clusterer = [], requestId;
+/**
+ * nk_google_map: Google Maps with clustered markers (no dependencies besides
+ * @googlemaps/markerclusterer, see Contrib/).
+ *
+ * Every ".gmap-canvas-container[data-gmap-config]" is initialised when it
+ * becomes visible. Markers come from the configuration, from "requestUri"
+ * (one request) or from "streamUri" (page by page).
+ *
+ * Events (dispatched on the container):
+ *   nkgmap:ready   detail: { id, map }
+ *   nkgmap:filter  detail: { id, type, value }
+ */
+(() => {
+  'use strict';
 
-var fitOnClick = [];
+  const MAP_STYLE = [{"elementType":"geometry","stylers":[{"color":"#f5f5f5"}]},{"elementType":"labels.icon","stylers":[{"visibility":"off"}]},{"elementType":"labels.text.fill","stylers":[{"color":"#616161"}]},{"elementType":"labels.text.stroke","stylers":[{"color":"#f5f5f5"}]},{"featureType":"administrative.land_parcel","elementType":"labels.text.fill","stylers":[{"color":"#bdbdbd"}]},{"featureType":"landscape.man_made","elementType":"geometry.fill","stylers":[{"color":"#92b1cc"},{"lightness":30}]},{"featureType":"landscape.natural","elementType":"geometry.fill","stylers":[{"color":"#93b1cc"},{"lightness":80}]},{"featureType":"landscape.natural.landcover","elementType":"geometry.fill","stylers":[{"color":"#93b1cc"},{"lightness":70}]},{"featureType":"landscape.natural.terrain","elementType":"geometry.fill","stylers":[{"color":"#93b1cc"},{"lightness":60}]},{"featureType":"poi","elementType":"geometry","stylers":[{"color":"#eeeeee"}]},{"featureType":"poi","elementType":"labels.text.fill","stylers":[{"color":"#757575"}]},{"featureType":"poi.business","elementType":"geometry.fill","stylers":[{"color":"#93b1cc"}]},{"featureType":"poi.government","elementType":"geometry.fill","stylers":[{"color":"#93b1cc"}]},{"featureType":"poi.medical","elementType":"geometry.fill","stylers":[{"color":"#93b1cc"}]},{"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#e5e5e5"}]},{"featureType":"poi.park","elementType":"geometry.fill","stylers":[{"color":"#93b1cc"},{"lightness":10}]},{"featureType":"poi.park","elementType":"labels.text.fill","stylers":[{"color":"#9e9e9e"}]},{"featureType":"poi.place_of_worship","elementType":"geometry.fill","stylers":[{"color":"#93b1cc"},{"saturation":-100},{"lightness":-100}]},{"featureType":"poi.school","elementType":"geometry.fill","stylers":[{"color":"#93b1cc"}]},{"featureType":"poi.sports_complex","elementType":"geometry.fill","stylers":[{"color":"#93b1cc"},{"lightness":10}]},{"featureType":"road","elementType":"geometry","stylers":[{"color":"#ffffff"}]},{"featureType":"road.arterial","elementType":"labels.text.fill","stylers":[{"color":"#757575"}]},{"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#dadada"}]},{"featureType":"road.highway","elementType":"labels.text.fill","stylers":[{"color":"#616161"}]},{"featureType":"road.local","elementType":"labels.text.fill","stylers":[{"color":"#9e9e9e"}]},{"featureType":"transit.line","elementType":"geometry","stylers":[{"color":"#92b1cc"}]},{"featureType":"transit.station","elementType":"geometry","stylers":[{"color":"#eeeeee"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#c9c9c9"}]},{"featureType":"water","elementType":"geometry.fill","stylers":[{"color":"#93b1cc"},{"lightness":-10}]},{"featureType":"water","elementType":"labels.text.fill","stylers":[{"color":"#ffffff"}]}];
 
-var mapStyle = [
-    {
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#f5f5f5"
-            }
-        ]
-    },
-    {
-        "elementType": "labels.icon",
-        "stylers": [
-            {
-                "visibility": "off"
-            }
-        ]
-    },
-    {
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#616161"
-            }
-        ]
-    },
-    {
-        "elementType": "labels.text.stroke",
-        "stylers": [
-            {
-                "color": "#f5f5f5"
-            }
-        ]
-    },
-    {
-        "featureType": "administrative.land_parcel",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#bdbdbd"
-            }
-        ]
-    },
-    {
-        "featureType": "landscape.man_made",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#92b1cc"
-            },
-            {
-                "lightness": 30
-            }
-        ]
-    },
-    {
-        "featureType": "landscape.natural",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#93b1cc"
-            },
-            {
-                "lightness": 80
-            }
-        ]
-    },
-    {
-        "featureType": "landscape.natural.landcover",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#93b1cc"
-            },
-            {
-                "lightness": 70
-            }
-        ]
-    },
-    {
-        "featureType": "landscape.natural.terrain",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#93b1cc"
-            },
-            {
-                "lightness": 60
-            }
-        ]
-    },
-    {
-        "featureType": "poi",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#eeeeee"
-            }
-        ]
-    },
-    {
-        "featureType": "poi",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#757575"
-            }
-        ]
-    },
-    {
-        "featureType": "poi.business",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#93b1cc"
-            }
-        ]
-    },
-    {
-        "featureType": "poi.government",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#93b1cc"
-            }
-        ]
-    },
-    {
-        "featureType": "poi.medical",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#93b1cc"
-            }
-        ]
-    },
-    {
-        "featureType": "poi.park",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#e5e5e5"
-            }
-        ]
-    },
-    {
-        "featureType": "poi.park",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#93b1cc"
-            },
-            {
-                "lightness": 10
-            }
-        ]
-    },
-    {
-        "featureType": "poi.park",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#9e9e9e"
-            }
-        ]
-    },
-    {
-        "featureType": "poi.place_of_worship",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#93b1cc"
-            },
-            {
-                "saturation": -100
-            },
-            {
-                "lightness": -100
-            }
-        ]
-    },
-    {
-        "featureType": "poi.school",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#93b1cc"
-            }
-        ]
-    },
-    {
-        "featureType": "poi.sports_complex",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#93b1cc"
-            },
-            {
-                "lightness": 10
-            }
-        ]
-    },
-    {
-        "featureType": "road",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#ffffff"
-            }
-        ]
-    },
-    {
-        "featureType": "road.arterial",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#757575"
-            }
-        ]
-    },
-    {
-        "featureType": "road.highway",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#dadada"
-            }
-        ]
-    },
-    {
-        "featureType": "road.highway",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#616161"
-            }
-        ]
-    },
-    {
-        "featureType": "road.local",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#9e9e9e"
-            }
-        ]
-    },
-    {
-        "featureType": "transit.line",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#92b1cc"
-            }
-        ]
-    },
-    {
-        "featureType": "transit.station",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#eeeeee"
-            }
-        ]
-    },
-    {
-        "featureType": "water",
-        "elementType": "geometry",
-        "stylers": [
-            {
-                "color": "#c9c9c9"
-            }
-        ]
-    },
-    {
-        "featureType": "water",
-        "elementType": "geometry.fill",
-        "stylers": [
-            {
-                "color": "#93b1cc"
-            },
-            {
-                "lightness": -10
-            }
-        ]
-    },
-    {
-        "featureType": "water",
-        "elementType": "labels.text.fill",
-        "stylers": [
-            {
-                "color": "#ffffff"
-            }
-        ]
+  const CLUSTER_ICONS = {
+    heterogen: 'heterogen.svg',
+    'digital-heterogen': 'heterogen_digital.svg',
+    'event-church_service': 'event_gottesdienst.svg',
+    'event-edu': 'event_bildung.svg',
+    'event-committee': 'event_gremien.svg',
+    'event-event': 'event_gemeindeleben.svg',
+    'event-leisure': 'event_freizeit.svg',
+    'event-music': 'event_konzerte.svg',
+    'event-spirituality': 'event_spiritualitaet.svg',
+    'event-base': 'event_gemeindeleben.svg',
+    'digital-event-church_service': 'event_digital-gottesdienst.svg',
+    'digital-event-edu': 'event_digital-bildung.svg',
+    'digital-event-committee': 'event_digital-gremien.svg',
+    'digital-event-event': 'event_digital-gemeindeleben.svg',
+    'digital-event-leisure': 'event_digital-freizeit.svg',
+    'digital-event-music': 'event_digital-konzerte.svg',
+    'digital-event-spirituality': 'event_digital-spiritualitaet.svg',
+    'digital-event-base': 'event_digital-gemeindeleben.svg',
+    'institution-4': 'inst_kirchengemeinde.svg',
+    'institution-6': 'inst_friedhof.svg',
+    'institution-9': 'inst_kirche.svg',
+    'institution-11': 'inst_kita.svg',
+    'institution-12': 'inst_kirchenkreis.svg',
+    'institution-16': 'inst_synode.svg',
+    'institution-22': 'inst_diakonie.svg',
+    'institution-31': 'inst_kirchenamt.svg',
+    'institution-33': 'inst_kirchenbuero.svg',
+    'institution-35': 'inst_bischof.svg',
+    'institution-37': 'inst_kirchenleitung.svg',
+    'institution-42': 'inst_kirchenamt.svg',
+    'institution-65': 'inst_tagungshaus.svg',
+    'institution-122': 'inst_pfadfinder.svg',
+  };
+
+  const BADGE_COLOR = '#850057';
+  const STREAM_DELAY = 200;
+  const CLUSTER_INFO_MAX_MARKERS = 20;
+  const CLUSTER_INFO_MAX_SPREAD = 0.0003;
+  const AUTO_CENTER_MAX_MARKERS = 500;
+
+  let apiPromise = null;
+
+  /**
+   * Loads the Google Maps API once (unless the site loads it itself)
+   */
+  const loadGoogleMaps = (config) => {
+    if (window.google?.maps?.importLibrary) {
+      return Promise.resolve();
     }
-];
+    if (apiPromise) {
+      return apiPromise;
+    }
+    if (!config.loadApi || !config.apiKey) {
+      apiPromise = new Promise((resolve, reject) => {
+        // The site loads the API itself: wait for it
+        let attempts = 0;
+        const timer = window.setInterval(() => {
+          if (window.google?.maps?.importLibrary || window.google?.maps?.Map) {
+            window.clearInterval(timer);
+            resolve();
+          } else if (++attempts > 100) {
+            window.clearInterval(timer);
+            reject(new Error('Google Maps API not available (no API key configured)'));
+          }
+        }, 100);
+      });
+      return apiPromise;
+    }
+    apiPromise = new Promise((resolve, reject) => {
+      const callback = '__nkGoogleMapLoaded';
+      window[callback] = () => resolve();
+      const script = document.createElement('script');
+      script.src = 'https://maps.googleapis.com/maps/api/js?' + new URLSearchParams({
+        key: config.apiKey,
+        loading: 'async',
+        callback,
+      });
+      script.async = true;
+      script.onerror = () => reject(new Error('Google Maps API could not be loaded'));
+      document.head.append(script);
+    });
+    return apiPromise;
+  };
 
-$(document).ready(function() {
+  const addQueryParameter = (url, name, value) => url + (url.includes('?') ? '&' : '?') + encodeURIComponent(name) + '=' + encodeURIComponent(value);
 
-    var asycMarkerInfo = false;
-    var infoWindow = new google.maps.InfoWindow({maxWidth: 400, maxHeight: 400});
-    var clusterStyles = [];
+  const fetchJson = async (url) => {
+    const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+    if (!response.ok) {
+      throw new Error('HTTP ' + response.status + ' for ' + url);
+    }
+    return response.json();
+  };
 
-    Cluster.prototype.inVicinity = function (dist) {
-        for (var i = 0; i < this.markers_.length; i++) {
-            var markerPos = this.markers_[i].getPosition();
-            if (Math.pow(this.center_.k - markerPos.k, 2) + Math.pow(this.center_.D - markerPos.D, 2) > Math.pow(dist, 2)) return false;
+  class GoogleMap {
+    constructor(container, config) {
+      this.container = container;
+      this.config = config;
+      this.markers = [];
+      this.markerData = new WeakMap();
+      this.bounds = null;
+      this.map = null;
+      this.clusterer = null;
+      this.infoWindow = null;
+      this.requestId = String(Math.floor(Math.random() * 1e9));
+      this.fitted = false;
+    }
+
+    async init() {
+      await loadGoogleMaps(this.config);
+      const { Map, InfoWindow } = await google.maps.importLibrary('maps');
+      this.advanced = Boolean(this.config.mapId);
+      if (this.advanced) {
+        this.AdvancedMarkerElement = (await google.maps.importLibrary('marker')).AdvancedMarkerElement;
+      }
+
+      const options = {
+        center: { lat: this.config.defaultCenter.lat, lng: this.config.defaultCenter.lon },
+        zoom: this.config.zoom.initial,
+        disableDoubleClickZoom: true,
+        keyboardShortcuts: true,
+        scrollwheel: true,
+      };
+      if (this.advanced) {
+        options.mapId = this.config.mapId;
+      } else {
+        options.styles = MAP_STYLE;
+      }
+
+      this.map = new Map(this.container.querySelector('.map'), options);
+      this.infoWindow = new InfoWindow({ maxWidth: 400 });
+      this.bounds = new google.maps.LatLngBounds();
+      this.clusterer = new markerClusterer.MarkerClusterer({
+        map: this.map,
+        algorithm: new markerClusterer.SuperClusterAlgorithm({ radius: 60 }),
+        renderer: { render: (cluster) => this.renderCluster(cluster) },
+        // Clicks are bound in renderCluster(): the clusterer still uses addListener(),
+        // which Google deprecates for advanced markers
+        onClusterClick: null,
+      });
+
+      this.bindFitOnClick();
+
+      if (this.config.markers.length) {
+        this.addMarkers(this.config.markers);
+        this.fit();
+      } else if (this.config.streamUri) {
+        await this.loadStream(1);
+      } else if (this.config.requestUri) {
+        await this.loadAll();
+      }
+
+      this.hideOverlay();
+      this.container.dispatchEvent(new CustomEvent('nkgmap:ready', { bubbles: true, detail: { id: this.config.id, map: this.map } }));
+    }
+
+    async loadAll() {
+      try {
+        const result = await fetchJson(this.config.requestUri);
+        this.addMarkers(result?.data ?? []);
+        this.fit();
+      } catch (error) {
+        console.error('[nk_google_map]', error);
+      }
+    }
+
+    async loadStream(page) {
+      let url = addQueryParameter(this.config.streamUri, this.config.pagination || 'page', page);
+      if (this.config.requestId) {
+        url = addQueryParameter(url, this.config.requestId, this.requestId);
+      }
+      try {
+        const result = await fetchJson(url);
+        const data = result?.data ?? [];
+        this.addMarkers(data);
+        if (page === 1 || !this.fitted) {
+          this.fit();
         }
-        return true;
-    };
+        // Older endpoints mark a complete result by "crdate"
+        const complete = result?.complete ?? Boolean(result?.crdate);
+        if (data.length > 0 && !complete) {
+          await new Promise((resolve) => window.setTimeout(resolve, STREAM_DELAY));
+          await this.loadStream(page + 1);
+        } else if (page > 1) {
+          // All pages loaded: show all markers
+          this.fit();
+        }
+      } catch (error) {
+        console.error('[nk_google_map]', error);
+      }
+    }
+
+    addMarkers(pointsOfInterest) {
+      const created = pointsOfInterest
+        .filter((poi) => Number.isFinite(parseFloat(poi.lat)) && Number.isFinite(parseFloat(poi.lon)))
+        .map((poi) => this.createMarker(poi));
+      this.markers.push(...created);
+      this.clusterer.addMarkers(created);
+    }
+
+    createMarker(poi) {
+      const position = { lat: parseFloat(poi.lat), lng: parseFloat(poi.lon) };
+      let marker;
+      if (this.advanced) {
+        const icon = document.createElement('img');
+        icon.src = poi.icon;
+        icon.width = 32;
+        icon.height = 38;
+        icon.alt = '';
+        marker = new this.AdvancedMarkerElement({ position, content: icon, title: poi.title || '', gmpClickable: true });
+      } else {
+        marker = new google.maps.Marker({ position, icon: poi.icon || undefined, title: poi.title || '' });
+      }
+      this.markerData.set(marker, {
+        type: String(poi.type || ''),
+        info: poi.info || '',
+        object: poi.info ? '' : (poi.object + ':' + poi.id),
+        visible: true,
+      });
+      this.bounds.extend(position);
+      this.onClick(marker, () => this.openInfo([marker], position));
+      return marker;
+    }
+
+    onClick(marker, callback) {
+      if (this.advanced) {
+        marker.addEventListener('gmp-click', callback);
+      } else {
+        marker.addListener('click', callback);
+      }
+    }
+
+    async openInfo(markers, position) {
+      this.infoWindow.close();
+      this.infoWindow.setPosition(position);
+      const inline = markers.map((marker) => this.markerData.get(marker).info).filter(Boolean);
+      const objects = markers.map((marker) => this.markerData.get(marker).object).filter(Boolean);
+
+      if (objects.length === 0) {
+        this.infoWindow.setContent(inline.join(''));
+        this.infoWindow.open({ map: this.map });
+        return;
+      }
+
+      this.infoWindow.setContent('Lade …');
+      this.infoWindow.open({ map: this.map });
+      try {
+        const response = await fetch(addQueryParameter(this.config.markerInfoUri, 'items', objects.join(',')), { credentials: 'same-origin' });
+        this.infoWindow.setContent(inline.join('') + (response.ok ? await response.text() : ''));
+      } catch (error) {
+        console.error('[nk_google_map]', error);
+        this.infoWindow.close();
+      }
+    }
+
+    onClusterClick(cluster) {
+      const bounds = cluster.bounds;
+      const spread = bounds
+        ? Math.max(
+          Math.abs(bounds.getNorthEast().lat() - bounds.getSouthWest().lat()),
+          Math.abs(bounds.getNorthEast().lng() - bounds.getSouthWest().lng()),
+        )
+        : 0;
+      // Markers at (almost) the same place: show their info instead of zooming
+      if (spread <= CLUSTER_INFO_MAX_SPREAD && (cluster.markers.length <= CLUSTER_INFO_MAX_MARKERS || spread === 0)) {
+        this.openInfo(cluster.markers, cluster.position);
+        return;
+      }
+      if (bounds) {
+        this.map.fitBounds(bounds);
+      }
+    }
 
     /**
-     * The default function for determining the label text and style
-     * for a cluster icon.
-     *
-     * @param {Array.<google.maps.Marker>} markers The array of markers represented by the cluster.
-     * @param {number} numStyles The number of marker styles available.
-     * @return {ClusterIconInfo} The information resource for the cluster.
-     * @constant
-     * @ignore
+     * Icon of the cluster: the marker type if all markers share it, otherwise
+     * the "heterogen" icon (or its digital variant)
      */
-    MarkerClusterer.nkCALCULATOR = function (markers, numStyles) {
-        var index = 0;
-        var title = "";
-        var count = markers.length.toString();
-        var currentType = '';
-        var homogene = true;
-        var digital = true;
-
-        markers.forEach(function(marker, i) {
-            if (i > 0) {
-                if (marker.type != currentType) {
-                    homogene = false;
-                    if (marker.type.substr(0, 7) != 'digital') {
-                        digital = false;
-                    }
-                }
-            } else {
-                currentType = marker.type;
-            }
-        });
-
-        if (homogene) {
-            clusterStyles.forEach(function(style, styleIndex) {
-                if (style.type == currentType) {
-                    index = styleIndex + 1;
-                }
-            });
-        } else {
-            clusterStyles.forEach(function(style, styleIndex) {
-                if ((style.type == 'heterogen') && (digital == false)) {
-                    index = styleIndex + 1;
-                } else if ((style.type == 'digital-heterogen') && (digital == true)) {
-                    index = styleIndex + 1;
-                }
-            });
-
+    clusterIcon(markers) {
+      const types = new Set(markers.map((marker) => this.markerData.get(marker).type));
+      if (types.size === 1) {
+        const [type] = types;
+        if (CLUSTER_ICONS[type]) {
+          return this.config.iconBase + CLUSTER_ICONS[type];
         }
-
-        index = Math.min(index, numStyles);
-        return {
-            text: count,
-            index: index,
-            title: title
-        };
-    };
-
-
-    // -----------------------------------------------------------------
-
-    function addMapMarker(map, pointOfInterest) {
-        var marker = new google.maps.Marker({
-            position: new google.maps.LatLng(pointOfInterest.lat, pointOfInterest.lon),
-            icon: pointOfInterest.icon,
-            height: 38,
-            width: 32,
-            title: pointOfInterest.title,
-            map: map,
-            type: pointOfInterest.type
-        });
-
-        // If info is delivered, add it to maker.
-        // Else add item type and id to marker for async loading
-        if (pointOfInterest.info) {
-            marker.infoText = pointOfInterest.info;
-        } else {
-            asycMarkerInfo = true;
-            marker.infoText = pointOfInterest.object + ':' + pointOfInterest.id;
-        }
-
-        google.maps.event.addListener(marker, 'click', function() {
-            infoWindow.close();
-            if (asycMarkerInfo) {
-                loadMarkerInfo(map, marker, infoWindow, [marker.infoText]);
-            } else {
-                infoWindow.open(map, marker);
-                infoWindow.setContent(marker.infoText);
-            }
-        });
-
-        return marker;
+      }
+      const digital = [...types].every((type) => type.startsWith('digital'));
+      return this.config.iconBase + CLUSTER_ICONS[digital ? 'digital-heterogen' : 'heterogen'];
     }
 
-    // -----------------------------------------------------------------
+    renderCluster(cluster) {
+      const icon = this.clusterIcon(cluster.markers);
+      const count = String(cluster.count);
+      // Clusters above single markers, bigger clusters on top
+      const zIndex = 1000000 + cluster.count;
 
+      if (this.advanced) {
+        const element = document.createElement('div');
+        element.className = 'gmap-cluster';
+        element.style.cssText = 'position:relative;width:40px;height:47px';
+        const image = document.createElement('img');
+        image.src = icon;
+        image.width = 40;
+        image.height = 47;
+        image.alt = '';
+        const badge = document.createElement('span');
+        badge.className = 'gmap-cluster-badge';
+        badge.textContent = count;
+        badge.style.cssText = 'position:absolute;top:-6px;right:-8px;min-width:22px;height:22px;padding:0 4px;border-radius:11px;'
+          + 'background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);color:' + BADGE_COLOR + ';font:bold 12px/22px sans-serif;text-align:center;box-sizing:border-box';
+        element.append(image, badge);
+        const advancedMarker = new this.AdvancedMarkerElement({ position: cluster.position, content: element, zIndex, title: count, gmpClickable: true });
+        this.onClick(advancedMarker, () => this.onClusterClick(cluster));
+        return advancedMarker;
+      }
 
-    function loadMarkerInfo(map, marker, infoWindow, objects) {
-        infoWindow.open(map, marker);
-        infoWindow.setContent('Lade...');
-        $.ajax({
-            url: '/marker?items=' + objects.join(),
-            success: function(result) {
-                infoWindow.close();
-                infoWindow.open(map, marker);
-                infoWindow.setContent(result);
-
-            }
-        });
+      const marker = new google.maps.Marker({
+        position: cluster.position,
+        zIndex,
+        title: count,
+        icon: { url: icon, scaledSize: new google.maps.Size(40, 47), labelOrigin: new google.maps.Point(34, 6) },
+        // White circle via CSS class (see _CSS_DEFAULT_STYLE)
+        label: { text: count, color: BADGE_COLOR, fontSize: '12px', fontWeight: 'bold', className: 'gmap-cluster-badge' },
+      });
+      this.onClick(marker, () => this.onClusterClick(cluster));
+      return marker;
     }
 
-    // -----------------------------------------------------------------
-
-    function loadClusterMarkerInfo(map, cluster, id, infoWindow) {
-
-        var objects = cluster.getMarkers().map(function (m) {
-            return m.infoText;
-        });
-
-        infoWindow.setContent('Lade...');
-
-        infoWindow.setPosition(cluster.getCenter());
-
-        infoWindow.open(map);
-
-        $.ajax({
-            url: '/marker?items=' + objects.join(),
-            success: function(result) {
-                infoWindow.close();
-                infoWindow.open(map);
-                infoWindow.setContent(result);
-                setTimeout(
-                    function () {
-                        clusterer[id].setZoomOnClick(true);
-                    },
-                    50
-                );
-            }
-        });
+    filter(value) {
+      const visible = [];
+      this.markers.forEach((marker) => {
+        const data = this.markerData.get(marker);
+        data.visible = !value || data.type.split(' ').includes(value);
+        if (data.visible) {
+          visible.push(marker);
+        }
+      });
+      this.infoWindow.close();
+      this.clusterer.clearMarkers();
+      this.clusterer.addMarkers(visible);
     }
 
-    // -----------------------------------------------------------------
+    fit() {
+      if (this.bounds.isEmpty()) {
+        return;
+      }
+      google.maps.event.trigger(this.map, 'resize');
+      this.map.fitBounds(this.bounds);
+      this.fitted = true;
 
-    function getMapCenter(id) {
-        var center;
+      const center = this.config.center;
+      let fixedCenter = null;
+      if (center.mode === 'fixed') {
+        fixedCenter = { lat: center.lat, lng: center.lon };
+      } else if (center.mode === 'user' && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => this.map.setCenter({ lat: position.coords.latitude, lng: position.coords.longitude }),
+          () => {},
+        );
+      } else if (this.markers.length > AUTO_CENTER_MAX_MARKERS) {
+        fixedCenter = { lat: this.config.defaultCenter.lat, lng: this.config.defaultCenter.lon };
+      }
+      const centerMoved = fixedCenter !== null || center.mode === 'user';
 
-        if (gmapConfig[id]['center']['mode'] == 'fixed') {
-            center = new google.maps.LatLng(gmapConfig[id]['center']['lat'], gmapConfig[id]['center']['lon']);
-        } else if ((gmapConfig[id]['center'] == 'user') && (navigator.geolocation)) {
-            navigator.geolocation.getCurrentPosition(function(position) {
-                    center = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-                },
-                function() {
-                    center = mapBounds[id].getCenter();
-                });
-
-        } else {
-            if (markers[id].length > 500) {
-                return false;
-            } else {
-                center = mapBounds[id].getCenter();
-            }
+      // Vector maps apply fitBounds() asynchronously: center and zoom only after it is done
+      google.maps.event.addListenerOnce(this.map, 'idle', () => {
+        const zoom = this.map.getZoom();
+        if (zoom > this.config.zoom.max) {
+          this.map.setZoom(this.config.zoom.max);
+        } else if (centerMoved && zoom < this.config.zoom.min) {
+          // Only with a given center: on the marker bounds a higher zoom would cut off markers
+          this.map.setZoom(this.config.zoom.min);
         }
-        return center;
+        if (fixedCenter) {
+          this.map.setCenter(fixedCenter);
+        }
+      });
     }
 
-    // -----------------------------------------------------------------
-
-    function fitGMap(id) {
-
-        google.maps.event.trigger(map[id], 'resize');
-
-        map[id].fitBounds(mapBounds[id]);
-        // map[id].setCenter(mapBounds[id].getCenter());
-        var center = getMapCenter(id);
-        if (center == false) {
-            center = new google.maps.LatLng(54.136244, 10.409546);
-        }
-
-        map[id].setCenter(center);
-
-        if (map[id].getZoom() > 12) {
-            map[id].setZoom(12);
-        }
-
-        if (map[id].getZoom() < 9) {
-            map[id].setZoom(9);
-        }
+    /**
+     * Maps in hidden areas (e.g. tabs) are fitted when the given element is clicked
+     */
+    bindFitOnClick() {
+      if (!this.config.fitOnClick) {
+        return;
+      }
+      document.querySelectorAll(this.config.fitOnClick).forEach((element) => {
+        element.addEventListener('click', () => window.setTimeout(() => this.fit(), 50), { once: true });
+      });
     }
 
-    // -----------------------------------------------------------------
-
-    function getClusterStyle(elementType, iconUrl, iconWithBadge) {
-        if (iconWithBadge) {
-            var anchorText =  [-1, -14];
-        } else {
-            var anchorText =  [-11, -4];
-        }
-
-        return {
-            url: iconUrl,
-            height: 47,
-            width: 40,
-            anchorIcon: [34, 16],
-            anchorText: anchorText,
-            textColor: '#ffffff',
-            textSize: 12,
-            textHeight: 22,
-            textWidth: 22,
-            lineHeight : 22,
-            background: '#850057',
-            borderRadius: '99px',
-            type: elementType
-        };
+    hideOverlay() {
+      const overlay = this.container.querySelector('.overlay');
+      if (overlay) {
+        overlay.hidden = true;
+      }
     }
+  }
 
+  const maps = new Map();
 
-    // -----------------------------------------------------------------
-
-    function createCluster(id) {
-
-        var iconBase = gmapConfig[id]['iconBase'];
-
-        clusterStyles = [
-            getClusterStyle('heterogen', iconBase + 'heterogen.svg', false),
-            getClusterStyle('digital-heterogen', iconBase + 'heterogen_digital.svg', true),
-
-            getClusterStyle('event-church_service', iconBase + 'event_gottesdienst.svg', false),
-            getClusterStyle('event-edu', iconBase + 'event_bildung.svg', false),
-            getClusterStyle('event-committee', iconBase + 'event_gremien.svg', false),
-            getClusterStyle('event-event', iconBase + 'event_gemeindeleben.svg', false),
-            getClusterStyle('event-leisure', iconBase + 'event_freizeit.svg', false),
-            getClusterStyle('event-music', iconBase + 'event_konzerte.svg', false),
-            getClusterStyle('event-spirituality', iconBase + 'event_spiritualitaet.svg', false),
-            getClusterStyle('event-base', iconBase + 'event_gemeindeleben.svg', false),
-
-            getClusterStyle('digital-event-church_service', iconBase + 'event_digital-gottesdienst.svg', true),
-            getClusterStyle('digital-event-edu', iconBase + 'event_digital-bildung.svg', true),
-            getClusterStyle('digital-event-committee', iconBase + 'event_digital-gremien.svg', true),
-            getClusterStyle('digital-event-event', iconBase + 'event_digital-gemeindeleben.svg', true),
-            getClusterStyle('digital-event-leisure', iconBase + 'event_digital-freizeit.svg', true),
-            getClusterStyle('digital-event-music', iconBase + 'event_digital-konzerte.svg', true),
-            getClusterStyle('digital-event-spirituality', iconBase + 'event_digital-spiritualitaet.svg', true),
-            getClusterStyle('digital-event-base', iconBase + 'event_digital-gemeindeleben.svg', true),
-
-            getClusterStyle('institution-4', iconBase + 'inst_kirchengemeinde.svg', false),
-            getClusterStyle('institution-6', iconBase + 'inst_friedhof.svg', false),
-            getClusterStyle('institution-9', iconBase + 'inst_kirche.svg', false),
-            getClusterStyle('institution-11', iconBase + 'inst_kita.svg', false),
-            getClusterStyle('institution-12', iconBase + 'inst_kirchenkreis.svg', false),
-            getClusterStyle('institution-16', iconBase + 'inst_synode.svg', false),
-            getClusterStyle('institution-22', iconBase + 'inst_diakonie.svg', false),
-            getClusterStyle('institution-31', iconBase + 'inst_kirchenamt.svg', false),
-            getClusterStyle('institution-33', iconBase + 'inst_kirchenbuero.svg', false),
-            getClusterStyle('institution-35', iconBase + 'inst_bischof.svg', false),
-            getClusterStyle('institution-37', iconBase + 'inst_kirchenleitung.svg', false),
-            getClusterStyle('institution-42', iconBase + 'inst_kirchenamt.svg', false),
-            getClusterStyle('institution-65', iconBase + 'inst_tagungshaus.svg', false),
-            getClusterStyle('institution-122', iconBase + 'inst_pfadfinder.svg', false)
-        ];
-
-        clusterer[id] = new MarkerClusterer(map[id], markers[id], {
-            gridSize: 40,
-            // maxZoom: 15,
-            calculator: MarkerClusterer.nkCALCULATOR,
-            styles: clusterStyles
-        });
-
-        google.maps.event.addListener(clusterer[id], 'clusterclick', function (cluster) {
-            if (cluster.inVicinity(0.0003)) {
-                if (cluster.getMarkers().length <= 20 || checkLocation(cluster.getMarkers())) {
-                    clusterer[id].setZoomOnClick(false);
-                    infoWindow.close();
-                    if (asycMarkerInfo) {
-                        loadClusterMarkerInfo(map[id], cluster, id, infoWindow);
-                    } else {
-                        infoWindow.setContent(cluster.getMarkers().map(function (m) {
-                            return m.infoText;
-                        }).join());
-                    }
-                }
-            }
-        });
+  const readConfig = (container) => {
+    try {
+      return JSON.parse(container.dataset.gmapConfig || '{}');
+    } catch (error) {
+      console.error('[nk_google_map] invalid configuration', error);
+      return null;
     }
+  };
 
-    //
-    function checkLocation(markers) {
-        var position = false;
-        for (var i = 0; i < markers.length; ++i) {
-            marker =  markers[i];
-            if (position) {
-                if (marker.position.toString() != position.toString()) {
-                    return false;
-                }
-            } else {
-                position = marker.position;
-            }
-        };
-        return true;
+  const initMap = (container) => {
+    const config = readConfig(container);
+    if (!config || maps.has(config.id)) {
+      return;
     }
+    const map = new GoogleMap(container, config);
+    maps.set(config.id, map);
+    map.init().catch((error) => console.error('[nk_google_map]', error));
+  };
 
-    // -----------------------------------------------------------------
+  /**
+   * Filter by facet: <select class="map-filter" data-gmap-id data-type> or
+   * theme lists <ul class="form-field--map-filter" data-gmap-id data-type><li data-value>
+   */
+  const applyFilter = (id, type, value, source) => {
+    document.querySelectorAll('select.map-filter[data-gmap-id="' + CSS.escape(id) + '"]').forEach((select) => {
+      if (select !== source && select.dataset.type !== type) {
+        select.value = '';
+      }
+    });
+    maps.get(id)?.filter(value);
+    document.querySelector('.gmap-canvas-container[data-gmap-id="' + CSS.escape(id) + '"]')
+      ?.dispatchEvent(new CustomEvent('nkgmap:filter', { bubbles: true, detail: { id, type, value } }));
+  };
 
-    function filterMarker(id, value) {
-        clusterer[id].setMap(null);
-        var addMarkers = [];
-        var removeMarkers = [];
-        if (value) {
-            markers[id].forEach(function(marker) {
-                var types = marker.type.split(' ');
-                if (types.indexOf(value) > -1) {
-                    if (!marker.getVisible()) {
-                        marker.setVisible(true);
-                        addMarkers.push(marker);
-                    }
-                } else {
-                    marker.setVisible(false);
-                    removeMarkers.push(marker);
-                }
-            });
-        } else {
-            markers[id].forEach(function(marker) {
-                if (!marker.getVisible()) {
-                    marker.setVisible(true);
-                    addMarkers.push(marker);
-                }
-            });
-        }
-        clusterer[id].setMap(map[id]);
-        clusterer[id].removeMarkers(removeMarkers, false, true);
-        clusterer[id].addMarkers(addMarkers, false);
-
+  document.addEventListener('change', (event) => {
+    const select = event.target.closest?.('select.map-filter');
+    if (select) {
+      applyFilter(select.dataset.gmapId, select.dataset.type, select.value, select);
     }
+  });
 
-    // -----------------------------------------------------------------
-
-    function loadMapMarkers(id, url, page) {
-
-        var requestUrl = url +  '&' + gmapConfig[id]['pagination'] + '=' + page;
-
-        if (gmapConfig[id]['requestId']) {
-            requestUrl += '&' + gmapConfig[id]['requestId'] + '=' + requestId;
-        }
-
-        $.getJSON(requestUrl, function(result) {
-            if (result && (result.data.length > 0)) {
-                for (var i = 0, pointOfInterest; pointOfInterest = result.data[i]; i++) {
-                    markers[id].push(addMapMarker(map[id], pointOfInterest));
-                    mapBounds[id].extend(new google.maps.LatLng(pointOfInterest.lat, pointOfInterest.lon));
-                }
-
-                if (result.crdate) {
-                    createCluster(id);
-                    $('.gmap-canvas-container[data-gmap-id="' + id + '"] .overlay').hide();
-                } else {
-                    window.setTimeout(200, loadMapMarkers(id, url, page + 1));
-                }
-
-            } else {
-
-                createCluster(id);
-
-                // fitGMap(id);
-
-                $('.gmap-canvas-container[data-gmap-id="' + id + '"] .overlay').hide();
-
-            }
-        });
+  document.addEventListener('click', (event) => {
+    const item = event.target.closest?.('ul.form-field--map-filter li');
+    if (item) {
+      event.preventDefault();
+      const list = item.closest('ul.form-field--map-filter');
+      applyFilter(list.dataset.gmapId, list.dataset.type, item.dataset.value || '', list);
     }
+  });
 
-    // -----------------------------------------------------------------
-
-    function initGMap(id) {
-
-        map[id] = new google.maps.Map(document.getElementById('gmap-canvas-' + id), {
-            center: new google.maps.LatLng(54.136244, 10.409546),
-            zoom: 8,
-            initialZoom: true,
-            mapTypeId: google.maps.MapTypeId.ROADMAP,
-            disableDefaultUi: true,
-            disableDoubleClickZoom: true,
-            keyboardShortcuts: true,
-            scrollwheel: true,
-            styles: mapStyle
-        });
-
-        requestId = Math.floor(Math.random() * 100) + 287661;
-
-        mapBounds[id] = new google.maps.LatLngBounds();
-        markers[id] = [];
-
-        // Add markers from array
-        if (gmapConfig[id]['markers'].length) {
-            gmapConfig[id]['markers'].forEach(function(pointOfInterest) {
-                markers[id].push(addMapMarker(map[id], pointOfInterest));
-                mapBounds[id].extend(new google.maps.LatLng(pointOfInterest.lat, pointOfInterest.lon));
-            });
-
-            createCluster(id);
-
-            fitGMap(id);
-
-        } else {
-            if (gmapConfig[id]['streamUri']) {
-
-                loadMapMarkers(id, gmapConfig[id]['streamUri'], 1);
-
-            } else if (gmapConfig[id]['requestUri']) {
-                $.getJSON(gmapConfig[id]['requestUri'], function(result) {
-                    if (result && (result.data.length > 0)) {
-                        for (var i = 0, pointOfInterest; pointOfInterest = result.data[i]; i++) {
-                            markers[id].push(addMapMarker(map[id], pointOfInterest));
-                            mapBounds[id].extend(new google.maps.LatLng(pointOfInterest.lat, pointOfInterest.lon));
-                        }
-
-                        createCluster(id);
-
-                        fitGMap(id);
-
-                        $('.gmap-canvas-container[data-gmap-id="' + id + '"] .overlay').hide();
-                    }
-                });
-            }
-        }
-
-        // Filter map marker by select box
-        $('select.map-filter').change(function() {
-            var id = $(this).data('gmap-id');
-            var type = $(this).data('type');
-            var value = $(this).val();
-
-            // reset all other filters
-            $('.map-filter').each(function() {
-                if ($(this).data('type') != type) {
-                    $(this).val('');
-                    $(this).niceSelect('update');
-                }
-            });
-
-            filterMarker(id, value);
-        });
-
-        // Filter map marker by list item
-        $('ul.form-field--map-filter li').click(function() {
-            var $list = $(this).parent('.form-field--map-filter');
-            var id = $list.data('gmap-id');
-            var type = $list.data('type');
-            var value = $(this).data('value');
-
-            // reset all other filters
-            $('.form--map-filter .form__field').each(function() {
-                var $filter = $(this).find('ul.form-field--map-filter');
-                if ($filter.data('type') != type) {
-                    var defaultValue = $filter.find('li:first-child').data('caption');
-                    $(this).find('.form-field__selected-option').html(defaultValue);
-                    $filter.parent('.form-field--dropdown').removeClass('form-field--selected');
-                }
-            });
-
-            filterMarker(id, value);
-
-        });
-
-
-
-        // change map zoom to fit all markers
-        google.maps.event.addListener(map[id], 'zoom_changed', function() {
-            zoomChangeBoundsListener = google.maps.event.addListener(map[id], 'bounds_changed', function() {
-                if (this.getZoom() > 12 && this.initialZoom == true) {
-                    this.setZoom(12);
-                    this.initialZoom = false;
-                }
-                google.maps.event.removeListener(zoomChangeBoundsListener);
-            });
-        });
-
-        if (gmapConfig[id]['fitOnClick'] != '') {
-            if (typeof(fitOnClick[gmapConfig[id]['fitOnClick']]) == 'undefined') {
-                fitOnClick[gmapConfig[id]['fitOnClick']] = true;
-                $(gmapConfig[id]['fitOnClick']).click(function() {
-                    $('.gmap-canvas-container').each(function() {
-                        var mapId = $(this).data('gmap-id');
-                        var gmapCanvas = $('#gmap-canvas-' + mapId);
-                        if (gmapCanvas.hasClass('initialized') == false) {
-                            fitGMap(mapId);
-                            gmapCanvas.addClass('initialized');
-                        }
-                    });
-                });
-            }
-        } else {
-            $('#gmap-canvas-' + id).addClass('initialized');
-        }
+  const start = () => {
+    const containers = document.querySelectorAll('.gmap-canvas-container[data-gmap-config]');
+    if (!('IntersectionObserver' in window)) {
+      containers.forEach(initMap);
+      return;
     }
-
-    var observerCallback = function(entries, observer) {
-        for(var i = 0; i < entries.length; i++) {
-            var entry = entries[i];
-            if(entry.intersectionRatio >= 0.1) {
-                initGMap($(entry.target).data('gmap-id'));
-                observer.unobserve(entry.target);
-            }
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          observer.unobserve(entry.target);
+          initMap(entry.target);
         }
-    };
+      });
+    }, { threshold: 0.1 });
+    containers.forEach((container) => observer.observe(container));
+  };
 
-    var mapElements = document.querySelectorAll('.gmap-canvas-container');
-
-    if(mapElements && mapElements.length > 0) {
-        var observer = new IntersectionObserver(observerCallback, {
-            threshold: [0.1]
-        });
-        for(var i = 0; i < mapElements.length; i++) {
-            observer.observe(mapElements[i]);
-        }
-    }
-
-    // -----------------------------------------------------------------
-
-});
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
+})();

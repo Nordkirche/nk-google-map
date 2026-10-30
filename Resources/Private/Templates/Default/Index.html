@@ -1,82 +1,40 @@
-<html xmlns:f="http://typo3.org/ns/TYPO3/Fluid/ViewHelpers"
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
       data-namespace-typo3-fluid="true">
 
-    <f:layout name="Default" />
+<f:layout name="Default" />
 
-    <f:section name="google-map">
-
-        <f:if condition="{configuration.facets -> f:count()}">
-
-            <f:then>
-                <f:if condition="{configuration.header}">
-                    <f:then>
-                        <h{configuration.header_layout}>{configuration.header}</h{configuration.header_layout}>
-                    </f:then>
-                </f:if>
-
-                <form method="get" data-index="2">
-                    <f:if condition="{configuration.facets.institution_types -> f:count()} > 1">
-                        <label>Art der Einrichtung</label>
-                        <ul data-gmap-id="{mapId}" data-type="institution_type">
-                            <li data-caption="Art der Einrichtung" data-value="">Art der Einrichtung</li>
-                            <f:for each="{configuration.facets.institution_types}" key="id" as="institutionType">
-                                <li data-caption="{institutionType}" data-value="institution-{id}">
-                                    <a href="">{institutionType}</a>
-                                </li>
-                            </f:for>
-                        </ul>
-                    </f:if>
-
-                    <f:if condition="{configuration.facets.functions -> f:count()} > 1">
-                        <label>Funktion der Person</label>
-                        <ul data-gmap-id="{mapId}" data-type="person_function">
-                            <li data-caption="Funktion der Person" data-value="">Funktion der Person</li>
-                            <f:for each="{configuration.facets.functions}" key="id" as="availableFunction">
-                                <li data-caption="{availableFunction}" data-value="person-{id}">
-                                    <a href="">{availableFunction}</a>
-                                </li>
-                            </f:for>
-                        </ul>
-                    </f:if>
-
-                    <f:if condition="{configuration.facets.categories} -> f:count()} > 1">
-                        <label>Rubrik</label>
-                        <ul data-gmap-id="{mapId}" data-type="category">
-                            <li data-caption="Rubrik" data-value="">Rubrik</li>
-                            <f:for each="{configuration.facets.categories}" key="id" as="category">
-                                <li data-caption="{category}" data-value="category-{id}">
-                                    <a href="">{category}</a>
-                                </li>
-                            </f:for>
-                        </ul>
-                    </f:if>
-
-                    <f:if condition="{configuration.facets.event_types} -> f:count()} > 1">
-                        <label>Veranstaltungsart</label>
-                        <ul data-gmap-id="{mapId}" data-type="event_type">
-                            <li data-caption="Veranstaltungsart" data-value="">Veranstaltungsart</li>
-                            <f:for each="{configuration.facets.event_types}" key="id" as="eventType">
-                                <li data-caption="{eventType}" data-value="event-{id}">
-                                    <a  href="">{eventType}</a>
-                                </li>
-                            </f:for>
-                        </ul>
-                    </f:if>
-
-                </form>
-
-            </f:then>
+<f:section name="google-map">
+    <f:if condition="{configuration.facets}">
+        <f:if condition="{configuration.header}">
+            <h{configuration.header_layout -> f:or(alternative: 2)}>{configuration.header}</h{configuration.header_layout -> f:or(alternative: 2)}>
         </f:if>
-        <div data-gmap-id="{mapId}" class="gmap-canvas-container {f:if(condition: configuration.cssClass, then: configuration.cssClass)}">
+        <form class="gmap-filter" data-gmap-id="{mapId}" onsubmit="return false">
+            <f:render section="filter" arguments="{mapId: mapId, type: 'institution_type', label: 'Art der Einrichtung', prefix: 'institution', options: configuration.facets.institution_types}" />
+            <f:render section="filter" arguments="{mapId: mapId, type: 'person_function', label: 'Funktion der Person', prefix: 'person', options: configuration.facets.functions}" />
+            <f:render section="filter" arguments="{mapId: mapId, type: 'category', label: 'Rubrik', prefix: 'category', options: configuration.facets.categories}" />
+            <f:render section="filter" arguments="{mapId: mapId, type: 'event_type', label: 'Veranstaltungsart', prefix: 'event', options: configuration.facets.event_types}" />
+        </form>
+    </f:if>
 
-            {f:format.raw(value: jsCode)}
+    <div data-gmap-id="{mapId}" data-gmap-config="{clientConfiguration}" class="gmap-canvas-container {configuration.cssClass}">
+        <f:if condition="{requestUri} || {streamUri}">
+            <div class="overlay">
+                <div class="spinner" aria-label="Karten-Marker werden geladen …" role="status" aria-busy="true"></div>
+            </div>
+        </f:if>
+        <div id="gmap-canvas-{mapId}" class="map" style="{configuration.style}"></div>
+    </div>
+</f:section>
 
-            <f:if condition="{requestUri} || {streamUri}">
-                <div class="overlay">
-                    <div class="spinner" aria-label="Karten-Marker werden geladen..." role="alert" aria-busy="true"></div>
-                </div>
-            </f:if>
-            <div id="gmap-canvas-{mapId}" class="map" style="{f:if(condition: '{configuration.style}', then: '{configuration.style};')}"></div>
-        </div>
-    </f:section>
+<f:section name="filter">
+    <f:if condition="{options -> f:count()} > 1">
+        <label for="{mapId}-{type}">{label}</label>
+        <select id="{mapId}-{type}" class="map-filter" data-gmap-id="{mapId}" data-type="{type}">
+            <option value="">{label}</option>
+            <f:for each="{options}" key="id" as="option">
+                <option value="{prefix}-{id}">{option}</option>
+            </f:for>
+        </select>
+    </f:if>
+</f:section>
 </html>

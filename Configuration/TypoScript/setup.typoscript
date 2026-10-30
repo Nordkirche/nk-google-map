@@ -1,48 +1,43 @@
 plugin.tx_nkgooglemap_pi1 {
-    view {
-        templateRootPaths.0 = EXT:nk_google_map/Resources/Private/Templates/
-        templateRootPaths.1 = {$plugin.tx_nkgooglemap_pi1.view.templateRootPath}
-        partialRootPaths.0 = EXT:nk_google_map/Resources/Private/Partials/
-        partialRootPaths.1 = {$plugin.tx_nkgooglemap_pi1.view.partialRootPath}
-        layoutRootPaths.0 = EXT:nk_google_map/Resources/Private/Layouts/
-        layoutRootPaths.1 = {$plugin.tx_nkgooglemap_pi1.view.layoutRootPath}
+  view {
+    templateRootPaths.0 = EXT:nk_google_map/Resources/Private/Templates/
+    templateRootPaths.1 = {$plugin.tx_nkgooglemap_pi1.view.templateRootPath}
+    partialRootPaths.0 = EXT:nk_google_map/Resources/Private/Partials/
+    partialRootPaths.1 = {$plugin.tx_nkgooglemap_pi1.view.partialRootPath}
+    layoutRootPaths.0 = EXT:nk_google_map/Resources/Private/Layouts/
+    layoutRootPaths.1 = {$plugin.tx_nkgooglemap_pi1.view.layoutRootPath}
+  }
 
-        widget.Nordkirche\NkGoogleMap\ViewHelpers\Widget\GoogleMapViewHelper.templateRootPaths.0 = EXT:nk_google_map/Resources/Private/Templates/
+  settings {
+    apiKey = {$plugin.tx_nkgooglemap_pi1.googleMapsApiKey}
+    mapId = {$plugin.tx_nkgooglemap_pi1.googleMapsMapId}
+    loadApi = {$plugin.tx_nkgooglemap_pi1.googleMapsApi}
+    defaultCenter {
+      lat = 54.136244
+      lon = 10.409546
     }
-    persistence {
-        storagePid = {$plugin.tx_nkgooglemap_pi1.persistence.storagePid}
-        #recursive = 1
+    zoom {
+      initial = 8
+      min = 9
+      max = 12
     }
-    features {
-    }
-    mvc {
-        callDefaultActionIfActionCantBeResolved = 1
-    }
-    settings {
-    }
-    _CSS_DEFAULT_STYLE (
-        .gmap-canvas-container > .map { height: 300px; width: 300px }
-    )
+  }
+
+  _CSS_DEFAULT_STYLE (
+    .gmap-canvas-container { position: relative; }
+    .gmap-canvas-container > .map { height: 300px; width: 100%; }
+    .gmap-canvas-container > .overlay { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, .6); }
+    .gmap-canvas-container > .overlay[hidden] { display: none; }
+    .gmap-canvas-container > .map { background: #f5f5f5; }
+    .gmap-canvas-container .spinner { width: 40px; height: 40px; box-sizing: border-box; border: 4px solid rgba(133, 0, 87, .2); border-top-color: #850057; border-radius: 50%; animation: nkgmap-spin .8s linear infinite; }
+    @keyframes nkgmap-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .gmap-canvas-container .spinner { animation-duration: 2.4s; } }
+    .gmap-canvas-container .gmap-cluster-badge { min-width: 22px; height: 22px; padding: 0 4px; box-sizing: border-box; border-radius: 11px; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .35); line-height: 22px; text-align: center; }
+  )
 }
 
-page {
-    includeJSFooterlibs {
-        gmapsApi = https://maps.googleapis.com/maps/api/js?key={$plugin.tx_nkgooglemap_pi1.googleMapsApiKey}
-        gmapsApi.external = 1
-        jquery = https://code.jquery.com/jquery-3.7.1.min.js
-        jquery.external = 1
-
-    }
-    includeJSFooter {
-        nk_google_map_markercluster = EXT:nk_google_map/Resources/Public/JavaScript/markerclusterer.js
-        nk_google_map_app = EXT:nk_google_map/Resources/Public/JavaScript/app.js
-    }
+page.includeJSFooter {
+  nk_google_map_markerclusterer = EXT:nk_google_map/Resources/Public/JavaScript/Contrib/markerclusterer.min.js
+  nk_google_map_app = EXT:nk_google_map/Resources/Public/JavaScript/app.js
+  nk_google_map_app.defer = 1
 }
-
-["{$plugin.tx_nkgooglemap_pi1.googleMapsApi}" != "1"]
-page.includeJSFooterlibs.gmapsApi >
-[global]
-
-["{$plugin.tx_nkgooglemap_pi1.jquery}" != "1"]
-page.includeJSFooterlibs.jquery >
-[global]
