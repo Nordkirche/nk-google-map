@@ -110,6 +110,14 @@
     return response.json();
   };
 
+  /**
+   * Marker types are space separated tokens, e.g. "event-music" or "digital-event-music".
+   * The filter value "event-music" matches both.
+   */
+  const matchesFilter = (type, value) => !value || type.split(' ').some((token) => token === value || token.endsWith('-' + value));
+
+  const COUNT_PATTERN = /\s*\(\d+\)$/;
+
   class GoogleMap {
     constructor(container, config) {
       this.container = container;
@@ -214,6 +222,36 @@
         .map((poi) => this.createMarker(poi));
       this.markers.push(...created);
       this.clusterer.addMarkers(created);
+      this.updateFilterCounts();
+    }
+
+    /**
+     * Counts in the filter options ("Konzerte (12)") from the markers on the map.
+     * The server counts all objects, including those without coordinates.
+     */
+    updateFilterCounts() {
+      const id = CSS.escape(String(this.config.id));
+      const types = this.markers.map((marker) => this.markerData.get(marker).type);
+      const count = (value) => types.filter((type) => matchesFilter(type, value)).length;
+
+      document.querySelectorAll('select.map-filter[data-gmap-id="' + id + '"] option').forEach((option) => {
+        if (option.value && COUNT_PATTERN.test(option.text)) {
+          const number = count(option.value);
+          option.text = option.text.replace(COUNT_PATTERN, ' (' + number + ')');
+          option.hidden = number === 0;
+        }
+      });
+      document.querySelectorAll('ul.form-field--map-filter[data-gmap-id="' + id + '"] li[data-value]').forEach((item) => {
+        const link = item.querySelector('a') || item;
+        if (item.dataset.value && COUNT_PATTERN.test(link.textContent)) {
+          const number = count(item.dataset.value);
+          link.textContent = link.textContent.replace(COUNT_PATTERN, ' (' + number + ')');
+          if (item.dataset.caption) {
+            item.dataset.caption = item.dataset.caption.replace(COUNT_PATTERN, ' (' + number + ')');
+          }
+          item.hidden = number === 0;
+        }
+      });
     }
 
     createMarker(poi) {
@@ -347,7 +385,7 @@
       const visible = [];
       this.markers.forEach((marker) => {
         const data = this.markerData.get(marker);
-        data.visible = !value || data.type.split(' ').includes(value);
+        data.visible = matchesFilter(data.type, value);
         if (data.visible) {
           visible.push(marker);
         }
